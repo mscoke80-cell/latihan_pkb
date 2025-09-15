@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>Kalkulator PKB + Breakdown</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #f4f6f9; --card: #fff; --text: #1f2937; --muted: #6b7280;
+      --prim: #0d6efd; --prim-dark: #0b5ed7; --border: #e5e7eb; --hi: #d4edda;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 24px;
+    }
+    .card {
+      max-width: 980px;
+      margin: auto;
+      background: var(--card);
+      border-radius: 14px;
+      box-shadow: 0 8px 20px rgba(0,0,0,.08);
+      overflow: hidden;
+    }
+    .card .section { padding: 16px; }
+    .grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: 1fr;
+    }
+    @media (min-width: 600px) {
+      .grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+    }
+    label { font-weight: 600; }
+    input, select, button {
+      width: 100%;
+      padding: 12px;
+      font-size: 1rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+    button {
+      cursor: pointer;
+      background: var(--prim);
+      border: none;
+      color: #fff;
+      font-weight: 700;
+      font-size: 1.1rem;
+      min-height: 48px;
+    }
+    button:hover { background: var(--prim-dark); }
+    .muted { color: var(--muted); }
+    .result-box {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    @media (min-width: 700px) {
+      .result-box { grid-template-columns: repeat(3, 1fr); }
+    }
+    .tile {
+      background: #f9fafb;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .tile .title { font-size: .9rem; color: var(--muted); }
+    .tile .value { font-size: 1.1rem; font-weight: 800; }
+    .hi { background: var(--hi); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 600px;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 10px;
+      text-align: center;
+    }
+    th { background: var(--prim); color: #fff; }
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .link-btn { background: #111827; }
+    .toggle { background: #10b981; }
+    .toggle:hover { background: #0ea371; }
+    .right { display: flex; justify-content: flex-end; }
+    .nowrap { white-space: nowrap; }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .header-title h1 { margin: 0; font-size: 1.5rem; }
+    .header-title p { margin: 0; color: var(--muted); font-size: .9rem; }
+    @media (max-width: 480px) {
+      .header { flex-direction: column; align-items: flex-start; }
+      .header-title h1 { font-size: 1.2rem; }
+    }
+    #breakdown { overflow-x: auto; }
+    @media print {
+      button, .actions { display: none !important; }
+      body { margin: 0; }
+      .card { box-shadow: none; border-radius: 0; }
+    }
+  </style>
+</head>
+<body>
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-title">
+      <h1>SAMSAT BANGKA SELATAN</h1>
+      <p>Kalkulator Pajak Kendaraan Bermotor</p>
+      <p>Hitung PKB + Opsen + SWDKLLJ</p>
+    </div>
+    <div style="flex:1"></div>
+    <button onclick="window.print()" style="max-width:150px">🖨 Cetak PDF</button>
+  </div>
+
+  <!-- FORM INPUT -->
+  <div class="card" role="region" aria-label="Kalkulator PKB">
+    <div class="section grid cols-3">
+      <div>
+        <label for="harga">NJKB (Rp)</label>
+        <input id="harga" type="number" value="150000000" min="0" step="1000" />
+      </div>
+      <div>
+        <label for="jenis">Jenis Kendaraan (Koef.)</label>
+        <select id="jenis">
+          <option value="1">Sepeda Motor (1.000)</option>
+          <option value="1.05">Mini Bus (1.050)</option>
+          <option value="1.05">Jeep (1.050)</option>
+          <option value="1.085">PU/Microbus/Blind Van (1.085)</option>
+          <option value="1.025">Sedan (1.025)</option>
+          <option value="1.3">Light Truk (1.300)</option>
+          <option value="1.4">Truk (1.400)</option>
+          <option value="1.1">Bus (1.100)</option>
+        </select>
+      </div>
+      <div>
+        <label for="tnkb">Jenis TNKB</label>
+        <select id="tnkb">
+          <option value="putih">Putih (Pribadi)</option>
+          <option value="kuning">Kuning (Perusahaan/Umum)</option>
+          <option value="merah">Merah (Dinas)</option>
+        </select>
+        <div style="margin-top:6px">
+          <label><input type="checkbox" id="ransus"> Kendaraan Ransus</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOMBOL AKSI -->
+    <div class="section actions">
+      <button onclick="hitung()">Hitung</button>
+      <button class="toggle" id="btnBreakdown" onclick="toggleBreakdown()" aria-expanded="false" aria-controls="breakdown">Lihat Breakdown Detail</button>
+      <div class="right" style="flex:1"></div>
+      <button class="link-btn" onclick="resetForm()">Reset</button>
+    </div>
+
+    <!-- HASIL -->
+    <div class="section result-box">
+      <div class="tile">
+        <div class="title">Tarif TNKB × Koefisien</div>
+        <div id="tarifEfektif" class="value">0%</div>
+        <div class="muted" id="tarifDasarInfo">Tarif TNKB: 0% | Koef: 1.000</div>
+      </div>
+      <div class="tile">
+        <div class="title">PKB (Rp)</div>
+        <div id="pkb" class="value">Rp 0</div>
+       <div class="title" class="value" id="opsenInfo">Opsen: Rp 0</div>
+      </div>
+      <div class="tile hi">
+        <div class="title">Total Bayar 
+(PKB + Opsen 66% + SWDKLLJD)</div>
+        <div id="total" class="value">Rp 0</div>
+        
+      </div>
+    </div>
+    <!-- BREAKDOWN -->
+    <div class="section" id="breakdown" hidden>
+      <table aria-label="Breakdown Perhitungan">
+        <thead>
+        <table class="table table-bordered table-sm">
+  <thead class="table-secondary">
+    <tr><th>Komponen</th><th>Keterangan</th><th>Nilai</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1. Harga Kendaraan</td><td>Harga jual kendaraan</td><td id="b_harga">Rp 0</td></tr>
+    <tr><td>2. Faktor Penyusutan</td><td>Berdasarkan umur kendaraan</td><td id="b_faktor">0%</td></tr>
+    <tr><td>3. Potongan</td><td>Potongan NJKB</td><td id="b_potongan">0%</td></tr>
+    <tr><td>4. Nilai Dasar PKB</td><td>Harga x Faktor x (1 - Potongan)</td><td id="b_nilaiDasar">Rp 0</td></tr>
+    <tr><td>5. Tarif Dasar PKB</td><td>Berdasarkan jenis kendaraan</td><td id="b_tarifDasar">0%</td></tr>
+    <tr><td>6. Koefisien</td><td>Tambahan berdasarkan kapasitas</td><td id="b_koef">1.00</td></tr>
+    <tr><td>7. Tarif Efektif</td><td>Tarif x Koefisien</td><td id="b_tarifEfektif">0%</td></tr>
+    <tr><td>8. PKB</td><td>Nilai Dasar x Tarif Efektif</td><td id="b_pkb">Rp 0</td></tr>
+    <tr><td>9. Opsen</td><td>Tambahan 2/3 dari PKB</td><td id="b_opsen">Rp 0</td></tr>
+    <tr><td><b>10. Total Bayar</b></td><td><b>PKB + Opsen</b></td><td id="b_total"><b>Rp 0</b></td></tr>
+    <tr><td>11. SWDKLLJ</td><td>Flat berdasarkan jenis</td><td id="b_swdkllj">Rp 0</td></tr>
+    <tr><td><b>12. Total Bayar + SWDKLLJ</b></td><td><b>Total + SWDKLLJ</b></td><td id="b_totalBayar"><b>Rp 0</b></td></tr>
+  </tbody>
+</table>
+      </table>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT -->
+  <script>
+    const TARIF_TNKB = { putih: 0.01, kuning: 0.012, merah: 0.005 };
+    const FAKTOR_NILAI = { putih: 0.031807, kuning: 0.031807, merah: 0.031807 };
+    const RANSUS_FACTOR = 0.26241;
+
+    const fmtRp = n => "Rp " + (isFinite(n) ? Math.round(n).toLocaleString("id-ID") : "0");
+    const pct = x => (x * 100).toFixed(3).replace(".", ",") + "%";
+    const comma = x => x.toFixed(6).replace(".", ",");
+
+    function getInputValues() {
+  const harga = parseFloat(document.getElementById("harga").value) || 0;
+  const koef = parseFloat(document.getElementById("jenis").value) || 1;
+  const tnkb = document.getElementById("tnkb").value;
+  const isRansus = document.getElementById("ransus").checked;
+
+  return { harga, koef, tnkb, isRansus };
+}
+
+function calculatePKB({ harga, koef, tnkb, isRansus }) {
+  let faktor = FAKTOR_NILAI[tnkb] ?? 0;
+  if (isRansus) faktor += RANSUS_FACTOR;
+
+  const tarifDasar = TARIF_TNKB[tnkb] ?? 0.01;
+  const potongan = harga * faktor;
+  const nilaiDasar = harga - potongan;
+  const tarifEfektif = tarifDasar * koef;
+  const pkb = nilaiDasar * tarifEfektif;
+  const opsen = pkb * 0.66;
+  const total = pkb + opsen;
+
+  return {
+    faktor, potongan, nilaiDasar,
+    tarifDasar, tarifEfektif,
+    pkb, opsen, total
+  };
+}
+
+function calculateSWDKLLJ(koef) {
+  const tarif = {
+    "1": 35000,
+    "1.05": 143000,
+    "1.085": 143000,
+    "1.025": 143000,
+    "1.3": 163000,
+    "1.4": 163000,
+    "1.1": 163000
+  };
+  return tarif[koef.toString()] || 0;
+}
+
+function updateMainOutput({ tarifEfektif, tarifDasar, pkb, opsen, total }, swdkllj, koef) {
+  const safeTarifDasar = typeof tarifDasar === "number" ? tarifDasar : 0.01;
+  const safeKoef = typeof koef === "number" ? koef : 1;
+  const safeTarifEfektif = typeof tarifEfektif === "number" ? tarifEfektif : safeTarifDasar * safeKoef;
+  const safePKB = typeof pkb === "number" ? pkb : 0;
+  const safeOpsen = typeof opsen === "number" ? opsen : 0;
+  const safeTotal = typeof total === "number" ? total : safePKB + safeOpsen;
+  const safeSWDKLLJ = typeof swdkllj === "number" ? swdkllj : 0;
+  const totalBayar = safeTotal + safeSWDKLLJ;
+
+  document.getElementById("tarifEfektif").textContent = pct(safeTarifEfektif);
+  document.getElementById("tarifDasarInfo").textContent =
+    `Tarif TNKB: ${(safeTarifDasar * 100).toFixed(2).replace(".", ",")}% | Koef: ${safeKoef.toFixed(3)}`;
+  document.getElementById("pkb").textContent = fmtRp(safePKB);
+  document.getElementById("total").textContent = fmtRp(totalBayar);
+  document.getElementById("opsenInfo").textContent = `Opsen: ${fmtRp(safeOpsen)} | SWDKLLJ: ${fmtRp(safeSWDKLLJ)}`;
+}
+
+
+function updateBreakdown(input, calc, swdkllj) {
+  const totalBayar = calc.total + swdkllj;
+
+  document.getElementById("b_harga").textContent = fmtRp(input.harga);
+  document.getElementById("b_faktor").textContent = comma(calc.faktor);
+  document.getElementById("b_potongan").textContent = fmtRp(calc.potongan);
+  document.getElementById("b_nilaiDasar").textContent = fmtRp(calc.nilaiDasar);
+  document.getElementById("b_tarifDasar").textContent = (calc.tarifDasar * 100).toFixed(2).replace(".", ",") + "%";
+  document.getElementById("b_koef").textContent = input.koef.toFixed(3).replace(".", ",");
+  document.getElementById("b_tarifEfektif").textContent = pct(calc.tarifEfektif);
+  document.getElementById("b_pkb").textContent = fmtRp(calc.pkb);
+  document.getElementById("b_opsen").textContent = fmtRp(calc.opsen);
+  document.getElementById("b_total").textContent = fmtRp(calc.total);
+  document.getElementById("b_swdkllj").textContent = fmtRp(swdkllj);
+  document.getElementById("b_totalBayar").textContent = fmtRp(totalBayar);
+}
+
+function hitung() {
+  const input = getInputValues();
+  const calc = calculatePKB(input);
+  const swdkllj = calculateSWDKLLJ(input.koef);
+if (!harga || harga <= 0) {
+  alert("Masukkan NJKB yang valid.");
+  return;
+}
+
+  updateMainOutput(calc, swdkllj);
+  updateBreakdown(input, calc, swdkllj);
+}
+
+    function toggleBreakdown() {
+      const el = document.getElementById("breakdown");
+      const btn = document.getElementById("btnBreakdown");
+      const isHidden = el.hasAttribute("hidden");
+      if (isHidden) {
+        el.removeAttribute("hidden");
+        btn.textContent = "Sembunyikan Breakdown Detail";
+        btn.setAttribute("aria-expanded", "true");
+      } else {
+        el.setAttribute("hidden", "");
+        btn.textContent = "Lihat Breakdown Detail";
+        btn.setAttribute("aria-expanded", "false");
+      }
+    }
+
+    function resetForm() {
+      document.getElementById("harga").value = 150000000;
+      document.getElementById("jenis").value = "1";
+      document.getElementById("tnkb").value = "putih";
+      document.getElementById("ransus").checked = false;
+      hitung();
+      const el = document.getElementById("breakdown");
+      if (!el.hasAttribute("hidden")) toggleBreakdown();
+    }
+function getSWDKLLJ(koef) {
+  const tarif = {
+    "1": 35000,       // Sepeda Motor
+    "1.05": 143000,   // Mini Bus / Jeep
+    "1.085": 143000,  // PU / Microbus / Blind Van
+    "1.025": 143000,  // Sedan
+    "1.3": 163000,    // Light Truk
+    "1.4": 163000,    // Truk
+    "1.1": 163000     // Bus
+  };
+  return tarif[koef.toString()] || 0;
+}
+
+    window.onload = hitung;
+  </script>
+  
+</body>
+
+</html>
